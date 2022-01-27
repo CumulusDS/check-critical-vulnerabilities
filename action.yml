@@ -1,28 +1,39 @@
-name: 'action-template'
+name: 'Critical Vulnerabilities'
 description: 'description'
 inputs:
-  input:
-    description: 'description'
+  token:
+    description: 'Token with appropriate permissions'
+    required: true
+  level:
+    description: 'Override CRITICAL level for failure.  HIGH, MODERATE or LOW.'
     required: false
-    default: ''
-outputs:
-  result:
-    description: "results"
-    value: "${{ steps.action.outputs.result }}"
+    default: 'CRITICAL'
+  fail:
+    description: 'Override failure on found vulnerabilities'
+    required: false
+    default: true
 runs:
   using: "composite"
   steps:
-    - name: generic step1
-      id: action
+    - name: Set extra environment variables
+      uses: 2tunnels/extra-vars@v1
+    - name: Get vulnerabilities
+      uses: thedave42/generate-dependency-alerts-csv-action@v1
+      with:
+        repo-token: ${{ inputs.token }}
+        org-name: ${{ env.EXTRA_REPO_OWNER }}
+        repo-names: ${{ env.EXTRA_REPO_NAME }}
+    - name: Test for failing vulnerabilities
       run: |
-        echo "::group::Title"
-        echo "steps go here"
-        results=something
-        echo "::set-output name=results::$results"
-        echo "::endgroup::"
+        count=0
+        while IFS=, read -r org repo package ecosystem summary severity permalink; do
+          [[ "${severity}" == *"${{ inputs.level }}"* ]] && echo -e "${package}:"'\t'"$severity"'\t'"${summary}" && echo -e '\t'"${permalink}" && ((++count))
+        done < ${{ env.EXTRA_REPO_OWNER }}-${{ env.EXTRA_REPO_NAME }}-vulnerabilities-list.csv
+        echo ""
+        echo ">> We found ${count} ${level} vulnerabilities!"
+        echo "FAIL=${count}" >> $GITHUB_ENV
       shell: bash
-    - name: Print results
-      id: print
-      run: |
-        echo "${{ steps.action.outputs.result }}"
+    - name: Pass/Fail
+      if: inputs.fail == 'true'
+      run: if [[ ${{ env.FAIL }} -gt '0' ]]; then exit 1; fi
       shell: bash
