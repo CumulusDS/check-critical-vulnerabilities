@@ -4,7 +4,7 @@
 [![PR AutoLabeler][autolabeler-badge]][autolabeler-url]
 [![Assigner][assigner-badge]][assigner-url]
 
-Description
+Checks repository for any critical vulnerabilities, and if found, fails CI.
 
 ### Inputs
 #### `token`
@@ -18,24 +18,12 @@ Default: `CRITICAL`
 Override failure on found vulnerabilities.  Set to `false` to disable action failure
 Default: `true`
 
-### Outputs
-#### `result`
-
 ### Example usage
 ```yaml
-      - name: action
-        id: some-action-id
-        uses: CumulusDS/check-critical-vulnerabilities@v0.0.1
+      - name: Check for failing vulnerabilities
+        uses: CumulusDS/check-critical-vulnerabilities@v1
         with:
           token: ${{ secrets.APPROPRIATE_TOKEN }}
-```
-
-The results can be later referenced again for use in a separate step if desired using the `results` output from the step.
-In order to reference the `result` output, you must assign and `id` to the step for future referencing.
-
-```yaml
-      - name: reprint results
-        run: echo "${{ steps.some-action-id.outputs.result }}"
 ```
 
 
